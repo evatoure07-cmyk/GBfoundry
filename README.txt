@@ -41,3 +41,14 @@ Publish Directory : .
 Branche : main
 
 Fichiers : index.html, app.js, styles.css, logo.png.
+
+
+HÉBERGEMENT ALTERNATIF — GITHUB PAGES
+====================================
+Render peut subir des interruptions de déploiement. Pour publier la version de démonstration sur GitHub Pages :
+1. Aller dans https://github.com/evatoure07-cmyk/GBfoundry/settings/pages
+2. Dans « Build and deployment », choisir « Deploy from a branch ».
+3. Sélectionner « main » et « /(root) », puis Save.
+4. GitHub Pages mettra alors le site à l'adresse https://evatoure07-cmyk.github.io/GBfoundry/ après publication.
+
+Attention : ce site reste une DÉMONSTRATION statique. Le stockage est uniquement local au navigateur et les identifiants de démonstration sont publics. Ne pas l'utiliser avec de vrais mots de passe ou des données privées. Une application multi-utilisateur nécessite un serveur d'authentification et une base de données.
