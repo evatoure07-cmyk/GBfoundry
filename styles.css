@@ -31,3 +31,16 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 .sidebar .brand img{object-fit:contain;mix-blend-mode:multiply}
 .panel{min-width:0}
 @media(max-width:800px){.ordercard summary{padding:16px}.orderbody{padding:0 16px 18px}.orderbody .g2{grid-template-columns:1fr}}
+
+/* New GB Foundry tablet modules */
+.gbavatar{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;min-width:48px;border-radius:14px;background:#e8752d;color:#fff;font-size:20px;font-weight:800;object-fit:cover;vertical-align:middle;margin-right:9px}
+.staff-entry[hidden]{display:none!important}
+.staff-entry{transition:transform .18s ease,border-color .18s ease}
+.staff-entry:hover{transform:translateY(-2px)}
+.compact .panel{padding:14px!important}
+.compact .listitem{padding:9px 12px!important}
+.compact .navbtn{padding:8px 12px!important}
+.compact .content{font-size:13px}
+.listitem summary{cursor:pointer;padding:8px 0}
+.panel,.listitem{transition:transform .2s ease,box-shadow .2s ease}
+@media(prefers-reduced-motion:reduce){.panel,.listitem,.staff-entry{transition:none!important}}
