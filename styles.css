@@ -11,3 +11,23 @@ h1,h2,h3,h4{font-family:'Barlow Condensed',Arial,sans-serif;line-height:1.05;mar
 dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0003;padding:26px;width:min(560px,calc(100% - 24px));max-height:85vh;overflow:auto}dialog::backdrop{background:#15151599}dialog h2{margin-bottom:17px}.toast{position:fixed;right:24px;bottom:22px;background:#242629;color:white;border-radius:10px;padding:13px 19px;z-index:999;box-shadow:0 12px 40px #0002;max-width:420px}.hide{display:none!important}
 @media(max-width:1000px){.sidebar{width:205px}.content{padding:25px 18px 45px}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:690px){.shell{display:block}.sidebar{position:relative;height:auto;width:100%;padding:13px}.brand{padding:5px}.sidebar nav{display:flex;overflow-x:auto;gap:2px;scrollbar-width:thin}.sectionlabel,.sidefoot{display:none}.navbtn{width:auto;flex:0 0 auto;white-space:nowrap}.content{padding:19px 14px 50px}.g2,.g3,.g4,.auth{grid-template-columns:1fr}.authart{padding:25px 10px}.authart img{width:120px}.authart h1{font-size:31px}.authart p{display:none}.authmain{padding:20px}.loginchoices{gap:7px}.loginchoice{padding:12px 6px}.top{align-items:flex-start}.hero{padding:23px}.hero img{width:100px}.hero h2{font-size:31px}}
+
+
+/* GB Foundry — layout refinement */
+.content{max-width:none!important;width:100%;min-width:0}
+.pagelead{align-items:flex-start}
+.orderstack{display:grid;gap:14px;width:100%}
+.ordercard{padding:0!important;overflow:hidden}
+.ordercard summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px}
+.ordercard summary::-webkit-details-marker{display:none}
+.ordercard summary>span{display:flex;align-items:center;gap:12px}
+.ordercard summary>span:first-child{display:grid;gap:5px}
+.ordercard summary small{color:#999;font-size:12px}
+.orderchevron{font-size:24px;color:#e8752d}
+.orderbody{padding:0 24px 24px;border-top:1px solid #ffffff14}
+.orderbody h3{margin:22px 0 12px}
+.orderline{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ffffff15}
+.ordercard[open] .orderchevron{transform:rotate(180deg)}
+.sidebar .brand img{object-fit:contain;mix-blend-mode:multiply}
+.panel{min-width:0}
+@media(max-width:800px){.ordercard summary{padding:16px}.orderbody{padding:0 16px 18px}.orderbody .g2{grid-template-columns:1fr}}
