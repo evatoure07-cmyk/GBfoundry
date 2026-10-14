@@ -33,9 +33,11 @@ orders:[], declarations:[], announcements:[],
 positions:[{id:"pos1",name:"Récolteur",open:true},{id:"pos2",name:"RH",open:true},{id:"pos3",name:"Responsable events",open:true},{id:"pos4",name:"Commercial",open:true}],
 applications:[],
 grades:[{role:"Récolteur novice",quota:400,salary:12000},{role:"Récolteur",quota:700,salary:15000},{role:"Récolteur confirmé",quota:1000,salary:18000}],
-events:[]});
+events:[],missions:[],notifications:[],notes:[]});
 let db;
 try {db=JSON.parse(localStorage.getItem(STORE)||"null");if(!db||db.version!==2)db=starter()}catch{db=starter()}
+db.missions ||= [];db.notifications ||= [];db.notes ||= [];db.users.forEach(u=>{u.career ||= [];u.photo ||= "";});
+let compact=false;
 let loginKind="admin", page="dashboard", cart={}, modalCredentials=null, publicApply=false;
 let sessionId=sessionStorage.getItem(SESSION)||"";
 const root=document.getElementById("app");
@@ -46,6 +48,11 @@ const now=()=>new Date().toLocaleString("fr-FR");
 const current=()=>db.users.find(x=>x.id===sessionId&&x.active);
 const company=()=>db.companies.find(c=>c.id===current()?.companyId);
 const save=()=>localStorage.setItem(STORE,JSON.stringify(db));
+const director=()=>["CEO","COO","Assistant de direction"].includes(current()?.role);
+const notify=(message,target="all")=>db.notifications.unshift({id:uid("N"),message,target,at:Date.now(),readBy:[]});
+const avatar=u=>u.photo?`<img class="gbavatar" src="${E(u.photo)}" alt="">`:`<span class="gbavatar">${E((u.name||"?")[0])}</span>`;
+const amount=o=>o.items.reduce((a,i)=>a+Number(db.materials.find(m=>m.id===i.id)?.price||0)*Number(i.qty||0),0);
+const csv=(name,rows)=>{const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const blob=new Blob(["\uFEFF"+rows.map(r=>r.map(q).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 const money=n=>n==null?"Tarif à confirmer":Number(n).toLocaleString("fr-FR")+" $";
 const num=n=>Number(n||0).toLocaleString("fr-FR");
 const allowed=p=>Boolean(current()?.kind==="admin"&&rights[current().role]?.includes(p));
@@ -71,8 +78,8 @@ const employeeDeclarations=u=>db.declarations.filter(x=>x.userId===u.id);
 const totalApproved=(u)=>employeeDeclarations(u).filter(x=>x.status==="Validée"&&x.week===weekOf(Date.now())).reduce((a,d)=>a+Number(d.quantity),0);
 function weekOf(time){const d=new Date(time);d.setHours(0,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7);return d.toISOString().slice(0,10)}
 const navigation=()=>{const u=current();if(!u)return[];if(u.kind==="company")return [["catalog","Catalogue"],["orders","Mes commandes"],["receivers","Contacts"],["profile","Mon profil"]];
-if(u.kind==="employee"){const out=u.role==="Commercial"?[["orders","Commandes"]]:[["dashboard","Tableau de bord"],["harvest","Mes récoltes"]];return [...out,["announcements","Annonces"],["profile","Mon profil"]]}
-const out=[["dashboard","Tableau de bord"]];for(const [p,title] of [["orders","Commandes"],["quotas","Quotas à vérifier"],["staff","Équipe & comptes"],["companies","Partenaires"],["materials","Articles & récoltes"],["salaries","Salaires & grades"],["announcements","Annonces"],["recruitment","Recrutement"]])if(allowed(p))out.push([p,title]);out.push(["profile","Mon profil"]);return out};
+if(u.kind==="employee"){const out=u.role==="Commercial"?[["orders","Commandes"],["schedule","Planning"]]:[["dashboard","Tableau de bord"],["harvest","Mes récoltes"],["inventory","Inventaire"],["missions","Missions"]];return [...out,["announcements","Annonces"],["notifications","Notifications"],["profile","Mon profil"]]}
+const out=[["dashboard","Tableau de bord"]];for(const [p,title] of [["orders","Commandes"],["quotas","Quotas à vérifier"],["staff","Équipe & comptes"],["companies","Partenaires"],["materials","Articles & récoltes"],["salaries","Salaires & grades"],["analytics","Statistiques"],["activity","Journal"],["missions","Missions"],["notifications","Notifications"],["announcements","Annonces"],["recruitment","Recrutement"]])if(allowed(p)||["analytics","activity","missions","notifications"].includes(p)&&director())out.push([p,title]);out.push(["profile","Mon profil"]);return out};
 function login(){
 const kinds=[["admin","Administration","◆"],["employee","Employé","⚒"],["company","Entreprise","▣"]];
 const application=publicApply?`<div class="panel"><div class="between"><h3>Candidature GB Foundry</h3>${btn("← Retour","back-login")}</div><p class="muted">Choisissez un des postes actuellement ouverts.</p>${frm("apply-form",`<div class="grid g2">${field("name","Nom et prénom RP")}${field("phone","Téléphone", "tel")}</div>${select("position","Poste",db.positions.filter(p=>p.open).map(p=>p.name))}${textarea("motivation","Pourquoi souhaitez-vous rejoindre GB Foundry ?")}`,"Envoyer ma candidature")}</div>`:
@@ -84,7 +91,7 @@ const u=current();root.innerHTML=`<div class="auth"><div class="authart"><img sr
 }
 function shell(){
 const u=current(), nav=navigation();if(!nav.some(n=>n[0]===page))page=nav[0][0];
-root.innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><img src="logo.png" alt="Logo GB Foundry"><div><strong>GB FOUNDRY</strong><small>PORTAIL PROFESSIONNEL</small></div></div><div class="sectionlabel">${u.kind==="admin"?"DIRECTION":u.kind==="company"?"ESPACE PARTENAIRE":"ESPACE INTERNE"}</div><nav>${nav.map(([id,name])=>`<button class="navbtn ${page===id?"active":""}" data-action="nav" data-id="${id}">${name}</button>`).join("")}</nav><div class="sidefoot"><strong>${E(u.name)}</strong><br>${E(u.role)}<br><br>${btn("Déconnexion","logout","","secondary tiny")}</div></aside><main class="content"><div class="top"><span class="eyebrow">GB FOUNDRY / ${E(page.toUpperCase())}</span><div class="topright">${label(u.role,"orange")}</div></div><div id="view">${view()}</div><div style="margin-top:28px" class="small">© GB Foundry · Prévisualisation locale · Les données ne sont pas partagées entre appareils · Discord à connecter</div></main></div>`;
+root.innerHTML=`<div class="shell ${compact?"compact":""}"><aside class="sidebar"><div class="brand"><img src="logo.png" alt="Logo GB Foundry"><div><strong>GB FOUNDRY</strong><small>PORTAIL PROFESSIONNEL</small></div></div><div class="sectionlabel">${u.kind==="admin"?"DIRECTION":u.kind==="company"?"ESPACE PARTENAIRE":"ESPACE INTERNE"}</div><nav>${nav.map(([id,name])=>`<button class="navbtn ${page===id?"active":""}" data-action="nav" data-id="${id}">${name}</button>`).join("")}</nav><div class="sidefoot"><strong>${E(u.name)}</strong><br>${E(u.role)}<br><br>${btn("Déconnexion","logout","","secondary tiny")}</div></aside><main class="content"><div class="top"><span class="eyebrow">GB FOUNDRY / ${E(page.toUpperCase())}</span><div class="topright">${btn(compact?"Mode confort":"Mode compact","compact","","secondary tiny")}${label(u.role,"orange")}</div></div><div id="view">${view()}</div><div style="margin-top:28px" class="small">© GB Foundry · Prévisualisation locale · Les données ne sont pas partagées entre appareils · Discord à connecter</div></main></div>`;
 }
 function dashboard(){
 const u=current();
@@ -187,13 +194,13 @@ company().receivers.push({id:uid("recept"),name:d.name,phone:d.phone});save();to
 }
 if(f.id==="harvest-form"&&u.kind==="employee"){
 db.declarations.push({id:uid("DECL"),userId:u.id,userName:u.name,material:d.material,quantity:Math.max(1,Number(d.quantity)),locker:d.locker,details:d.details||"",status:"En attente",date:now(),week:weekOf(Date.now())});
-log("harvest_created",`${u.name}: ${d.quantity} ${d.material}`);save();toast("Déclaration en attente de validation.");return render();
+notify("Déclaration à vérifier : "+u.name,"quotas");log("harvest_created",`${u.name}: ${d.quantity} ${d.material}`);save();toast("Déclaration en attente de validation.");return render();
 }
 if(f.id==="checkout-form"&&u.kind==="company"){
 if(!Object.keys(cart).length)return toast("Panier vide.");if(!d.deliveryDate||!d.deliveryTime||!d.iban)return toast("Renseignez la date, l’heure et l’IBAN.");
 const items=Object.entries(cart).map(([id,qty])=>({id,qty,name:db.materials.find(m=>m.id===id)?.name||"Article"}));
 const o={id:"GB-"+Date.now().toString(36).toUpperCase(),companyId:u.companyId,createdBy:u.id,receiver:"",deliveryDate:d.deliveryDate,deliveryTime:d.deliveryTime,iban:d.iban.trim().replace(/\s/g,"").toUpperCase(),items,status:"Reçue",date:now(),commercial:"",commercialId:null,reason:""};
-db.orders.unshift(o);log("order_created",o.id);save();cart={};toast("Commande "+o.id+" enregistrée.");page="orders";return render();
+db.orders.unshift(o);notify("Nouvelle commande "+o.id,"orders");log("order_created",o.id);save();cart={};toast("Commande "+o.id+" enregistrée.");page="orders";return render();
 }
 if(f.id==="staff-form"&&allowed("staff")){
 if(!getUsernameFree(d.username))return toast("Identifiant déjà pris.");if(u.role==="RH"&&["CEO","COO","Assistant de direction"].includes(d.role))return toast("Accès non autorisé.");
@@ -226,6 +233,7 @@ if(a==="back-login"){publicApply=false;return render()}
 if(a==="logout"){sessionId="";sessionStorage.removeItem(SESSION);cart={};return render()}
 if(!u)return;
 if(a==="nav"){page=id;return render()}
+if(a==="compact"){compact=!compact;return render()}
 if(a==="cart-add"&&u.kind==="company"){const m=db.materials.find(m=>m.id===id);if(!m||!m.active)return;const qty=Number(document.getElementById("qty_"+id)?.value||0);if(qty<1)return toast("Quantité incorrecte.");cart[id]=(cart[id]||0)+qty;toast("Ajouté au panier.");return render()}
 if(a==="cart-clear"){cart={};return render()}
 if(a==="order-claim"&&canOrders()){
@@ -245,7 +253,7 @@ o.status="Annulée";o.reason=reason.trim();o.cancelledAt=now();log("order_cancel
 if(a==="quota-approve"&&allowed("quotas")){
 const d=db.declarations.find(x=>x.id===id);if(!d||d.status!=="En attente")return;
 if(!confirm("Avez-vous vérifié les items dans le casier "+d.locker+" ?"))return;
-d.status="Validée";d.checkedBy=u.name;d.checkedAt=now();log("harvest_approved",d.id);save();return render();
+d.status="Validée";d.checkedBy=u.name;d.checkedAt=now();notify("Récolte validée : "+d.material,d.userId);log("harvest_approved",d.id);save();return render();
 }
 if(a==="quota-refuse"&&allowed("quotas")){
 const d=db.declarations.find(x=>x.id===id);if(!d||d.status!=="En attente")return;
