@@ -44,3 +44,13 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 .listitem summary{cursor:pointer;padding:8px 0}
 .panel,.listitem{transition:transform .2s ease,box-shadow .2s ease}
 @media(prefers-reduced-motion:reduce){.panel,.listitem,.staff-entry{transition:none!important}}
+
+.gb-id-card{border-radius:18px;background:linear-gradient(135deg,#1b1c20,#34343b 65%,#a94d17);color:#fff;padding:22px;min-height:205px;box-shadow:0 8px 22px #0002}
+.gb-id-top,.gb-id-foot{display:flex;justify-content:space-between;align-items:center;letter-spacing:.12em;font-weight:800;font-size:11px}
+.gb-id-top span{color:#f6a66d;font-size:9px}
+.gb-id-main{display:flex;align-items:center;gap:14px;margin:26px 0}
+.gb-id-main .gbavatar{width:64px;height:64px;min-width:64px;border:2px solid #f88d46}
+.gb-id-main h3{color:white;margin:0 0 6px}
+.gb-id-main p{margin:0 0 7px;color:#ffb17c}
+.gb-id-main small{color:#ccc}
+.gb-id-foot{font-size:9px;color:#aaa}
