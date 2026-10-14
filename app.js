@@ -146,9 +146,23 @@ return `${header("NOUS REJOINDRE","Recrutement","Suivi des postes ouverts et des
 function profile(){
 const u=current();return `${header("IDENTITÉ","Mon profil","Vos informations de connexion.")}<div class="grid g2"><div class="panel"><h3>${E(u.name)}</h3><div class="divider"></div><p>Identifiant : <strong>${E(u.username)}</strong></p><p>Accès : <strong>${E(u.role)}</strong></p><p>Statut : ${label(u.active?"Actif":"Suspendu",u.active?"green":"red")}</p></div><div class="panel"><h3>Modifier mon mot de passe</h3>${frm("password-form",`${field("oldPassword","Mot de passe actuel","password")}${field("password","Nouveau mot de passe","password","",true,'minlength="8"')}${field("repeat","Confirmation","password","",true,'minlength="8"')}`,"Mettre à jour")}</div></div>`;
 }
+
+function inventory(){const u=current(),ds=db.declarations.filter(d=>d.userId===u.id);return header("RÉCOLTES","Inventaire personnel","Déclarations en attente et validées.")+table(["Matériau","Validé","En attente"],db.materials.map(m=>{const rows=ds.filter(d=>d.material===m.name),sum=status=>rows.filter(d=>d.status===status).reduce((a,d)=>a+Number(d.quantity),0);return `<tr><td>${E(m.name)}</td><td>${num(sum("Validée"))}</td><td>${num(sum("En attente"))}</td></tr>`}))}
+function schedule(){return header("LOGISTIQUE","Planning des livraisons","Commandes par date et heure.")+orderRows(db.orders.filter(o=>o.status!=="Annulée").slice().sort((a,b)=>(a.deliveryDate||"").localeCompare(b.deliveryDate||"")||(a.deliveryTime||"").localeCompare(b.deliveryTime||"")))}
+function missions(){return header("OBJECTIFS","Missions exceptionnelles","Missions fixées par la direction.")+(director()?`<div class="panel">${frm("mission-form",field("title","Mission")+select("material","Ressource",db.materials.map(m=>m.name))+field("quantity","Quantité","number")+field("deadline","Échéance","date")+field("reward","Prime éventuelle","number","0",false),"Créer une mission")}</div>`:"")+`<div class="grid g3">${db.missions.map(m=>`<div class="panel"><h3>${E(m.title)}</h3><p>${E(m.material)} : ${num(m.quantity)}</p><p>Échéance : ${E(m.deadline)}</p><p>Prime : ${money(m.reward)}</p>${director()?btn("Clôturer","mission-close",m.id,"secondary tiny"):""}</div>`).join("")}</div>`}
+function notifications(){const u=current(),items=db.notifications.filter(n=>n.target==="all"||n.target===u.id||n.target==="orders"&&canOrders()||n.target==="quotas"&&allowed("quotas"));return header("ALERTES","Notifications","Informations récentes.")+`<div class="list">${items.slice(0,60).map(n=>`<div class="listitem between"><div>${E(n.message)}<p>${new Date(n.at).toLocaleString("fr-FR")}</p></div>${(n.readBy||[]).includes(u.id)?label("Lu","green"):btn("Marquer lu","notice-read",n.id,"secondary tiny")}</div>`).join("")}</div>`}
+function activity(){return director()?header("AUDIT","Journal d'activité","Modifications enregistrées.")+`<div class="list">${db.events.slice(0,150).map(e=>`<div class="listitem"><strong>${E(e.type)}</strong><p>${E(e.info)} · ${E(e.by)} · ${E(e.date)}</p></div>`).join("")}</div>`:empty("Accès réservé")}
+function analytics(){if(!director())return empty("Accès réservé");const done=db.orders.filter(o=>o.status==="Livrée");return header("FINANCES","Statistiques financières","Détail par entreprise.")+`<div class="grid g3"><div class="panel stat"><span>CA livré</span><span class="num">${money(done.reduce((a,o)=>a+amount(o),0))}</span></div><div class="panel stat"><span>Livraisons</span><span class="num">${done.length}</span></div><div class="panel stat"><span>Commandes</span><span class="num">${db.orders.length}</span></div></div><div class="panel" style="margin-top:20px"><div class="between"><h3>Entreprises</h3>${btn("Exporter pour Google Sheets","export-orders","","secondary tiny")}</div>${db.companies.map(c=>{const os=db.orders.filter(o=>o.companyId===c.id);return `<details class="listitem"><summary><strong>${E(c.name)}</strong> · ${os.length} commandes · ${money(os.filter(o=>o.status==="Livrée").reduce((a,o)=>a+amount(o),0))}</summary>${orderRows(os)}</details>`}).join("")}</div>`}
+
 function view(){
 switch(page){
 case"dashboard":return dashboard();
+case"inventory":return inventory();
+case"schedule":return schedule();
+case"missions":return missions();
+case"notifications":return notifications();
+case"activity":return activity();
+case"analytics":return analytics();
 case"catalog":return catalog();
 case"orders":return orders();
 case"receivers":return receivers();
@@ -189,6 +203,7 @@ if(d.password!==d.repeat||d.password.length<8)return toast("Les mots de passe do
 if(f.id==="password-form"&&d.oldPassword!==u.password)return toast("Ancien mot de passe incorrect.");
 u.password=d.password;u.mustChange=false;save();toast("Mot de passe enregistré.");return render();
 }
+if(f.id==="mission-form"&&director()){db.missions.unshift({id:uid("MISSION"),...d});log("mission_created",d.title);notify("Nouvelle mission : "+d.title);save();return render()}
 if(f.id==="receiver-form"&&u.kind==="company"){
 company().receivers.push({id:uid("recept"),name:d.name,phone:d.phone});save();toast("Personne ajoutée.");return render();
 }
@@ -234,6 +249,9 @@ if(a==="logout"){sessionId="";sessionStorage.removeItem(SESSION);cart={};return 
 if(!u)return;
 if(a==="nav"){page=id;return render()}
 if(a==="compact"){compact=!compact;return render()}
+if(a==="notice-read"){const n=db.notifications.find(n=>n.id===id);if(n){n.readBy||=[];if(!n.readBy.includes(u.id))n.readBy.push(u.id);save();}return render()}
+if(a==="mission-close"&&director()){db.missions=db.missions.filter(m=>m.id!==id);log("mission_closed",id);save();return render()}
+if(a==="export-orders"&&director())return csv("gbfoundry-commandes",[["Commande","Entreprise","Statut","Montant","Date livraison","Commercial"],...db.orders.map(o=>[o.id,db.companies.find(c=>c.id===o.companyId)?.name,o.status,amount(o),o.deliveryDate,o.commercial])]);
 if(a==="cart-add"&&u.kind==="company"){const m=db.materials.find(m=>m.id===id);if(!m||!m.active)return;const qty=Number(document.getElementById("qty_"+id)?.value||0);if(qty<1)return toast("Quantité incorrecte.");cart[id]=(cart[id]||0)+qty;toast("Ajouté au panier.");return render()}
 if(a==="cart-clear"){cart={};return render()}
 if(a==="order-claim"&&canOrders()){
