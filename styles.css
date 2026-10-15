@@ -125,3 +125,13 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 #irs-category-form select:focus{border-color:var(--orange);box-shadow:0 0 0 3px #f66b1622}
 #irs-category-form .btn{background:var(--orange);border-color:var(--orange)}
 #irs-category-form .btn.secondary{background:#fff;border-color:var(--line);color:var(--ink)}
+
+/* GB Foundry: crisp typographic sidebar identity, no blurry raster box */
+.sidebar .brand{display:flex;align-items:center;gap:13px;padding:8px 8px 23px;min-width:0}
+.brand-monogram{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:62px;height:58px;border-radius:13px;background:linear-gradient(145deg,#2f3134,#1c1e20);border:1px solid #53504b;box-shadow:inset 0 1px 0 #ffffff14}
+.brand-monogram span{font:900 34px/1 'Barlow Condensed',Impact,sans-serif;letter-spacing:-3px}
+.brand-monogram span:first-child{color:#f2f1ee}
+.brand-monogram span:last-child{color:var(--orange);transform:translateX(-1px)}
+.brand-copy{min-width:0}
+.brand-copy strong{display:block;font:800 23px/1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px;color:#fff;white-space:nowrap}
+.brand-copy small{display:block;margin-top:6px;font-size:9px;letter-spacing:1.15px;color:#b2b5b9;white-space:nowrap}
