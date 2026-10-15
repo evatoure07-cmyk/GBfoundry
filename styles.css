@@ -100,3 +100,28 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 .irs-transaction .muted{font-size:12px;margin-top:5px}
 @media(max-width:1100px){.irs-panels{grid-template-columns:1fr}.irs-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.irs-stats{grid-template-columns:1fr}.irs-stat strong{font-size:20px}}
+
+/* GB Foundry accounting visual identity — charcoal, ivory and industrial orange */
+.irs-balance{background:linear-gradient(115deg,#1b1d20,#292623);border:1px solid #3b3631;color:#fff;box-shadow:0 14px 35px #18191b13;border-radius:16px}
+.irs-balance h3,.irs-panel h3{font-family:'Barlow Condensed',Arial,sans-serif;letter-spacing:.3px}
+.irs-stats{gap:13px}
+.irs-stat{background:#26282b;border:1px solid #3e3d3b;border-left:3px solid var(--orange);border-radius:11px}
+.irs-stat span{color:#e9aa7e;font-weight:800;letter-spacing:.09em}
+.irs-stat strong{font-family:'Barlow Condensed',Arial,sans-serif;font-size:30px}
+.irs-panels{gap:17px}
+.irs-panel{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:0 8px 30px #17191b08}
+.irs-panel h3{color:var(--ink);font-size:25px;padding-bottom:14px;border-bottom:2px solid #f66b162e}
+.irs-category{background:#f7f6f4;color:var(--ink);border:1px solid #ebe7e2}
+.irs-category small{color:#a25a27}
+.irs-positive,.irs-stat strong.irs-positive{color:#159a67}
+.irs-negative,.irs-stat strong.irs-negative{color:#d24e48}
+.irs-balance .irs-positive{color:#43dc98}
+.irs-balance .irs-negative{color:#ff8178}
+.irs-toolbar .btn.secondary{border:1px solid #e4d8cf;background:#fff}
+.irs-toolbar .btn.secondary:hover{border-color:var(--orange);color:#bb4f0c}
+#modal:has(#irs-category-form){background:#fff;color:var(--ink);border:1px solid #dedbd6;box-shadow:0 24px 90px #0005;border-radius:16px;max-width:540px;width:calc(100% - 32px)}
+#modal:has(#irs-category-form) h2{font-family:'Barlow Condensed',Arial,sans-serif;color:var(--ink)}
+#irs-category-form select{background:#faf9f7;border:1px solid #d9d6d2;color:#26282b;border-radius:10px;padding:13px 15px;accent-color:var(--orange)}
+#irs-category-form select:focus{border-color:var(--orange);box-shadow:0 0 0 3px #f66b1622}
+#irs-category-form .btn{background:var(--orange);border-color:var(--orange)}
+#irs-category-form .btn.secondary{background:#fff;border-color:var(--line);color:var(--ink)}
