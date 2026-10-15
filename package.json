@@ -4,9 +4,13 @@
   "private": true,
   "description": "GB Foundry professional portal",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:discord": "node discord-bank-bot.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "discord.js": "14.22.1"
   }
 }
