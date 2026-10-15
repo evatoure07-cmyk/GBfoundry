@@ -135,3 +135,8 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 .brand-copy{min-width:0}
 .brand-copy strong{display:block;font:800 23px/1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px;color:#fff;white-space:nowrap}
 .brand-copy small{display:block;margin-top:6px;font-size:9px;letter-spacing:1.15px;color:#b2b5b9;white-space:nowrap}
+
+/* Unified brand image sizing */
+.sidebar .brand img.brand-logo{display:block;width:62px;height:62px;object-fit:contain;flex-shrink:0;border:0;border-radius:0;background:none}
+.authart img[src="logo-gb.svg"]{width:120px;height:120px;object-fit:contain;border-radius:24px}
+.hero img[src="logo-gb.svg"]{width:92px;height:92px;object-fit:contain;border-radius:20px}
