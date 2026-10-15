@@ -178,7 +178,7 @@ function notifications(){const u=current(),items=db.notifications.filter(n=>n.ta
 function activity(){return director()?header("AUDIT","Journal d'activité","Modifications enregistrées.")+`<div class="list">${db.events.slice(0,150).map(e=>`<div class="listitem"><strong>${E(e.type)}</strong><p>${E(e.info)} · ${E(e.by)} · ${E(e.date)}</p></div>`).join("")}</div>`:empty("Accès réservé")}
 const IRS_IN=["Chiffre d'affaires (CA)","Autres revenus","Dons reçus","SACEM","Caution encaissée"];
 const IRS_OUT_DED=["Salaires","Prime hebdomadaire","Prime mensuelle","Matière première","Nourriture","Frais d'avocat/comptable","Locations","Achats véhicules","Frais véhicules","Caution remboursée","Dons versés"];
-const IRS_OUT_NON=["Locations","Achats véhicules","Autres"];
+const IRS_OUT_NON=["Achats véhicules non déductibles","Autres non déductibles","Locations non déductibles","Paiement impôts (semaine précédente)","Paiement salaires (semaine précédente)"];
 let accountingWeekOffset=0,accountingFilter="all";
 const accountingAllowed=()=>["CEO","COO","Assistant de direction","RH"].includes(current()?.role);
 const accountingWeek=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7+accountingWeekOffset*7);return d};
@@ -210,10 +210,19 @@ ${rows.filter(r=>accountingFilter==="all"||(accountingFilter==="pending"?r.statu
 }
 function accountingCategorize(id){
 const row=(db.accountingTransactions||[]).find(r=>r.id===id);if(!row)return;
-const dialog=document.getElementById("modal");const categories=row.direction==="in"?IRS_IN:[...IRS_OUT_DED,...IRS_OUT_NON.filter(x=>!IRS_OUT_DED.includes(x))];
-dialog.innerHTML=`<h2>Catégoriser la transaction</h2><p>${E(row.reason||"Sans motif")} — ${accountingMoney(row.amount_cents/100)}</p><form id="irs-category-form"><input type="hidden" name="id" value="${E(row.id)}">${select("category","Rubrique IRS",categories,row.category||categories[0])}${row.direction==="out"?select("deductible","Traitement fiscal",["Déductible","Non déductible"],row.deductible===false?"Non déductible":"Déductible"):""}<div class="flex"><button class="btn" type="submit">Enregistrer</button><button class="btn secondary" type="button" data-action="close-modal">Annuler</button></div></form>`;
+const dialog=document.getElementById("modal");
+const options=row.direction==="in"?IRS_IN.map(x=>({value:"in:"+x,label:x})): [
+{value:"",label:"Choisir une catégorie...",disabled:true},
+{value:"ded",label:"Dépenses déductibles",disabled:true},
+...IRS_OUT_DED.map(x=>({value:"ded:"+x,label:"　"+x})),
+{value:"non",label:"Dépenses non déductibles",disabled:true},
+...IRS_OUT_NON.map(x=>({value:"non:"+x,label:"　"+x}))
+];
+const selected=row.category?(row.direction==="in"?"in:":row.deductible?"ded:":"non:")+row.category:"";
+dialog.innerHTML=`<h2>Catégoriser la transaction</h2><p>${E(row.reason||"Sans motif")} — ${accountingMoney(row.amount_cents/100)}</p><form id="irs-category-form"><input type="hidden" name="id" value="${E(row.id)}"><label class="field">Catégorie IRS<select name="classification" required><option value="" disabled ${!selected?"selected":""}>Choisir une catégorie...</option>${options.filter(o=>o.value!=="").map(o=>`<option value="${E(o.value)}" ${o.disabled?"disabled class='irs-option-heading'":""} ${selected===o.value?"selected":""}>${E(o.label)}</option>`).join("")}</select></label><div class="flex"><button class="btn" type="submit">✔ Valider</button><button class="btn secondary" type="button" data-action="close-modal">Annuler</button></div></form>`;
 dialog.showModal();
 }
+
 function analytics(){const done=db.orders.filter(o=>o.status==="Livrée");return header("FINANCES","Statistiques financières","Détail par entreprise.")+`<div class="grid g3"><div class="panel stat"><span>CA livré</span><span class="num">${money(done.reduce((a,o)=>a+amount(o),0))}</span></div><div class="panel stat"><span>Livraisons</span><span class="num">${done.length}</span></div><div class="panel stat"><span>Commandes</span><span class="num">${db.orders.length}</span></div></div><div class="panel" style="margin-top:20px"><h3>Performances commerciales</h3>${db.users.filter(x=>x.role==="Commercial").map(x=>{const assigned=db.orders.filter(o=>o.commercialId===x.id);return `<details class="listitem"><summary>${avatar(x)} <strong>${E(x.name)}</strong> · ${assigned.length} prises en charge · ${assigned.filter(o=>o.status==="Livrée").length} livrées · ${assigned.filter(o=>o.status==="Annulée").length} annulées</summary>${orderRows(assigned)}</details>`}).join("")}</div><div class="panel" style="margin-top:20px"><div class="between"><h3>Entreprises</h3>${btn("Exporter pour Google Sheets","export-orders","","secondary tiny")}</div>${db.companies.map(c=>{const os=db.orders.filter(o=>o.companyId===c.id);return `<details class="listitem"><summary><strong>${E(c.name)}</strong> · ${os.length} commandes · ${money(os.filter(o=>o.status==="Livrée").reduce((a,o)=>a+amount(o),0))}</summary>${orderRows(os)}</details>`}).join("")}</div>`}
 
 function commercialHistory(){const u=current();if(u.role!=="Commercial")return empty("Accès réservé");const rows=db.orders.filter(o=>o.commercialId===u.id);return header("LIVRAISONS","Mon activité commerciale","Suivi des commandes prises en charge.")+`<div class="grid g3"><div class="panel stat"><span>Prises en charge</span><span class="num">${rows.length}</span></div><div class="panel stat"><span>Livrées</span><span class="num">${rows.filter(o=>o.status==="Livrée").length}</span></div><div class="panel stat"><span>Annulées</span><span class="num">${rows.filter(o=>o.status==="Annulée").length}</span></div></div>`+orderRows(rows)}
@@ -263,7 +272,7 @@ const f=e.target;if(!f.id)return;e.preventDefault();const d=data(f),u=current();
 if(f.id==="irs-manual-form"&&accountingAllowed()){
 const cents=Math.round(Number(d.amount)*100);if(!Number.isSafeInteger(cents)||cents<=0)return toast("Montant invalide.");db.accountingTransactions||=[];db.accountingTransactions.unshift({id:uid("IRS"),week:weekOf(new Date(d.date+"T12:00:00").getTime()),date:d.date,direction:d.direction==="Entrée"?"in":"out",amount_cents:cents,reason:d.reason,status:"pending",category:null});save();return render();}
 if(f.id==="irs-category-form"&&accountingAllowed()){
-const r=(db.accountingTransactions||[]).find(x=>x.id===d.id);if(!r)return;r.category=d.category;r.deductible=r.direction==="out"?d.deductible==="Déductible":null;r.status="classified";save();document.getElementById("modal").close();return render();}
+const r=(db.accountingTransactions||[]).find(x=>x.id===d.id);if(!r)return;const [group,...name]=String(d.classification||"").split(":");if(!["in","ded","non"].includes(group)||!name.length)return toast("Choisis une catégorie.");r.category=name.join(":");r.deductible=group==="ded"?true:group==="non"?false:null;r.status="classified";save();document.getElementById("modal").close();return render();}
 if(f.id==="login-form"){
 const found=db.users.find(u=>u.kind===loginKind&&u.active&&u.username.toLowerCase()===String(d.username||"").trim().toLowerCase()&&u.password===d.password);
 if(!found)return toast("Identifiants ou espace de connexion incorrects.");return loginSession(found);
