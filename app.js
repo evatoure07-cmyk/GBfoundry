@@ -79,7 +79,7 @@ const totalApproved=(u)=>employeeDeclarations(u).filter(x=>x.status==="Validée"
 function weekOf(time){const d=new Date(time);d.setHours(0,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7);return d.toISOString().slice(0,10)}
 const navigation=()=>{const u=current();if(!u)return[];if(u.kind==="company")return [["catalog","Catalogue"],["orders","Mes commandes"],["receivers","Contacts"],["profile","Mon profil"]];
 if(u.kind==="employee"){const out=u.role==="Commercial"?[["orders","Commandes"],["schedule","Planning"],["commercial-history","Mon activité"]]:[["dashboard","Tableau de bord"],["harvest","Mes récoltes"],["inventory","Inventaire"],["missions","Missions"]];return [...out,["announcements","Annonces"],["notifications","Notifications"],["profile","Mon profil"]]}
-const out=[["dashboard","Tableau de bord"]];for(const [p,title] of [["orders","Commandes"],["quotas","Quotas à vérifier"],["staff","Équipe & comptes"],["hrnotes","Notes RH"],["employee-card","Cartes employés"],["companies","Partenaires"],["materials","Articles & récoltes"],["salaries","Salaires & grades"],["analytics","Statistiques"],["activity","Journal"],["missions","Missions"],["notifications","Notifications"],["announcements","Annonces"],["recruitment","Recrutement"]])if(allowed(p)||["analytics","activity","missions","notifications","employee-card"].includes(p)&&director()||p==="hrnotes"&&allowed("staff"))out.push([p,title]);out.push(["profile","Mon profil"]);return out};
+const out=[["dashboard","Tableau de bord"]];if(["CEO","COO","Assistant de direction","RH"].includes(u.role))out.push(["accounting","Comptabilité IRS"]);for(const [p,title] of [["orders","Commandes"],["quotas","Quotas à vérifier"],["staff","Équipe & comptes"],["hrnotes","Notes RH"],["employee-card","Cartes employés"],["companies","Partenaires"],["materials","Articles & récoltes"],["salaries","Salaires & grades"],["analytics","Statistiques"],["activity","Journal"],["missions","Missions"],["notifications","Notifications"],["announcements","Annonces"],["recruitment","Recrutement"]])if(allowed(p)||["analytics","activity","missions","notifications","employee-card"].includes(p)&&director()||p==="hrnotes"&&allowed("staff"))out.push([p,title]);out.push(["profile","Mon profil"]);return out};
 function login(){
 const kinds=[["admin","Administration","◆"],["employee","Employé","⚒"],["company","Entreprise","▣"]];
 const application=publicApply?`<div class="panel"><div class="between"><h3>Candidature GB Foundry</h3>${btn("← Retour","back-login")}</div><p class="muted">Choisissez un des postes actuellement ouverts.</p>${frm("apply-form",`<div class="grid g2">${field("name","Nom et prénom RP")}${field("phone","Téléphone", "tel")}</div>${select("position","Poste",db.positions.filter(p=>p.open).map(p=>p.name))}${textarea("motivation","Pourquoi souhaitez-vous rejoindre GB Foundry ?")}`,"Envoyer ma candidature")}</div>`:
@@ -91,7 +91,7 @@ const u=current();root.innerHTML=`<div class="auth"><div class="authart"><img sr
 }
 function renderGroupedNav(nav,u){
 const groupOf=id=>({
-staff:"RH",hrnotes:"RH",recruitment:"RH",quotas:"Récoltes & quotas",harvest:"Récoltes & quotas",inventory:"Récoltes & quotas",materials:"Récoltes & quotas",missions:"Récoltes & quotas",orders:"Commandes & livraisons",schedule:"Commandes & livraisons","commercial-history":"Commandes & livraisons",companies:"Partenaires",receivers:"Partenaires",salaries:"Gestion",analytics:"Statistiques",activity:"Statistiques",announcements:"Communication",notifications:"Communication",catalog:"Catalogue"})[id]||"Autres";
+staff:"RH",hrnotes:"RH",recruitment:"RH",quotas:"Récoltes & quotas",harvest:"Récoltes & quotas",inventory:"Récoltes & quotas",materials:"Récoltes & quotas",missions:"Récoltes & quotas",orders:"Commandes & livraisons",schedule:"Commandes & livraisons","commercial-history":"Commandes & livraisons",companies:"Partenaires",receivers:"Partenaires",salaries:"Gestion",accounting:"Comptabilité & statistiques",analytics:"Statistiques",activity:"Statistiques",announcements:"Communication",notifications:"Communication",catalog:"Catalogue"})[id]||"Autres";
 const item=([id,name])=>`<button class="navbtn ${page===id?"active":""}" data-action="nav" data-id="${id}">${E(name)}</button>`;
 const dashboard=nav.filter(n=>n[0]==="dashboard");
 const profile=nav.filter(n=>n[0]==="profile");
@@ -176,6 +176,44 @@ return header("LOGISTIQUE","Planning des livraisons","Naviguez entre les semaine
 function missions(){return header("OBJECTIFS","Missions exceptionnelles","Missions fixées par la direction.")+(director()?`<div class="panel">${frm("mission-form",field("title","Mission")+select("material","Ressource",db.materials.map(m=>m.name))+field("quantity","Quantité","number")+field("deadline","Échéance","date")+field("reward","Prime éventuelle","number","0",false),"Créer une mission")}</div>`:"")+`<div class="grid g3">${db.missions.map(m=>`<div class="panel"><h3>${E(m.title)}</h3><p>${E(m.material)} : ${num(m.quantity)}</p><p>Échéance : ${E(m.deadline)}</p><p>Prime : ${money(m.reward)}</p>${director()?btn("Clôturer","mission-close",m.id,"secondary tiny"):""}</div>`).join("")}</div>`}
 function notifications(){const u=current(),items=db.notifications.filter(n=>n.target==="all"||n.target===u.id||n.target==="orders"&&canOrders()||n.target==="quotas"&&allowed("quotas"));return header("ALERTES","Notifications","Informations récentes.")+`<div class="list">${items.slice(0,60).map(n=>`<div class="listitem between"><div>${E(n.message)}<p>${new Date(n.at).toLocaleString("fr-FR")}</p></div>${(n.readBy||[]).includes(u.id)?label("Lu","green"):btn("Marquer lu","notice-read",n.id,"secondary tiny")}</div>`).join("")}</div>`}
 function activity(){return director()?header("AUDIT","Journal d'activité","Modifications enregistrées.")+`<div class="list">${db.events.slice(0,150).map(e=>`<div class="listitem"><strong>${E(e.type)}</strong><p>${E(e.info)} · ${E(e.by)} · ${E(e.date)}</p></div>`).join("")}</div>`:empty("Accès réservé")}
+const IRS_IN=["Chiffre d'affaires (CA)","Autres revenus","Dons reçus","SACEM","Caution encaissée"];
+const IRS_OUT_DED=["Salaires","Prime hebdomadaire","Prime mensuelle","Matière première","Nourriture","Frais d'avocat/comptable","Locations","Achats véhicules","Frais véhicules","Caution remboursée","Dons versés"];
+const IRS_OUT_NON=["Locations","Achats véhicules","Autres"];
+let accountingWeekOffset=0,accountingFilter="all";
+const accountingAllowed=()=>["CEO","COO","Assistant de direction","RH"].includes(current()?.role);
+const accountingWeek=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7+accountingWeekOffset*7);return d};
+const accountingWeekKey=d=>{const p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())};
+const accountingMoney=n=>Number(n||0).toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:2})+" $";
+const accountingSum=rows=>rows.reduce((sum,r)=>sum+Number(r.amount_cents||0),0);
+function accounting(){
+if(!accountingAllowed())return empty("Accès réservé.");
+const monday=accountingWeek(),sunday=new Date(monday);sunday.setDate(sunday.getDate()+6);
+const week=accountingWeekKey(monday);
+const rows=(db.accountingTransactions||[]).filter(r=>r.week===week);
+const classified=rows.filter(r=>r.category&&r.status==="classified");
+const incoming=classified.filter(r=>r.direction==="in"),outgoing=classified.filter(r=>r.direction==="out");
+const pending=rows.filter(r=>r.status!=="classified");
+const salaryPending=(db.accountingSalaries||[]).filter(r=>r.week===week&&!r.paid).reduce((a,r)=>a+Number(r.amount_cents||0),0);
+const sumCategory=(direction,category,deductible)=>accountingSum(classified.filter(r=>r.direction===direction&&r.category===category&&(deductible===null||Boolean(r.deductible)===deductible)));
+const inTotal=accountingSum(incoming),dedTotal=accountingSum(outgoing.filter(r=>r.deductible)),nonTotal=accountingSum(outgoing.filter(r=>!r.deductible));
+const stat=(label,value,kind)=>`<div class="irs-stat"><span>${E(label)}</span><strong class="${kind||""}">${accountingMoney(value/100)}</strong></div>`;
+const categoryPanel=(title,items,direction,deductible)=>`<section class="irs-panel"><h3>${E(title)}</h3>${items.map(name=>{const subset=classified.filter(r=>r.direction===direction&&r.category===name&&(deductible===null||Boolean(r.deductible)===deductible));return `<div class="irs-category"><span>${E(name)}</span><small>${subset.length} transaction(s)</small><strong class="${direction==="in"?"irs-positive":"irs-negative"}">${direction==="in"?"+":"−"}${accountingMoney(accountingSum(subset)/100)}</strong></div>`}).join("")}</section>`;
+return header("FINANCES","Comptabilité IRS","Préparation du bilan bancaire hebdomadaire, sans estimation des impôts.")+
+`<div class="notice"><strong>Mode préparation locale.</strong> Les transactions saisies ici restent sur cet appareil. L'import Discord et la synchronisation sécurisée Supabase ne sont pas encore activés.</div>
+<div class="irs-toolbar"><button class="btn secondary" data-action="irs-prev">← Semaine précédente</button><strong>${E(monday.toLocaleDateString("fr-FR",{day:"numeric",month:"long"}))} — ${E(sunday.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}))}</strong><button class="btn secondary" data-action="irs-next">Semaine suivante →</button></div>
+<div class="irs-balance"><div class="between"><h3>📊 Bilan de la semaine</h3><span>À catégoriser : ${pending.length}</span></div><div class="irs-stats">${stat("Chiffre d'affaires",sumCategory("in",IRS_IN[0],null),"irs-positive")}${stat("Total des revenus",inTotal,"irs-positive")}${stat("Dépenses déductibles",dedTotal,"irs-negative")}${stat("Dépenses non déductibles",nonTotal,"irs-negative")}${stat("Salaires calculés à payer",salaryPending,"")}${stat("Solde net des mouvements",inTotal-dedTotal-nonTotal,"")}</div></div>
+<div class="irs-panels">${categoryPanel("💰 Revenus",IRS_IN,"in",null)}${categoryPanel("📉 Dépenses déductibles",IRS_OUT_DED,"out",true)}${categoryPanel("📋 Dépenses non déductibles",IRS_OUT_NON,"out",false)}</div>
+<section class="panel" style="margin-top:20px"><div class="between"><h3>Transactions bancaires</h3><span>${rows.length} mouvement(s) · ${pending.length} à classer</span></div>
+<div class="irs-toolbar"><button class="btn secondary" data-action="irs-filter" data-id="all">Toutes</button><button class="btn secondary" data-action="irs-filter" data-id="pending">À catégoriser</button><button class="btn secondary" data-action="irs-filter" data-id="classified">Classées</button>${btn("Exporter le bilan CSV","irs-export","","secondary")}</div>
+${rows.filter(r=>accountingFilter==="all"||(accountingFilter==="pending"?r.status!=="classified":r.status==="classified")).map(r=>`<div class="irs-transaction"><div><strong class="${r.direction==="in"?"irs-positive":"irs-negative"}">${r.direction==="in"?"+":"−"}${accountingMoney(r.amount_cents/100)}</strong><div class="muted">${E(r.reason||"Sans motif")} · ${E(r.date||"")}</div></div><div>${r.status==="classified"?label(r.category):`<span class="chip">À catégoriser</span>`}</div><div>${btn("Catégoriser","irs-classify",r.id,"secondary tiny")}</div></div>`).join("")||empty("Aucune transaction dans cette semaine.")}</section>
+<section class="panel" style="margin-top:20px"><h3>Ajouter une transaction manuellement</h3>${frm("irs-manual-form",`<div class="grid g2">${select("direction","Type de mouvement",["Entrée","Sortie"])}${field("amount","Montant en $","number","",true,'min="0.01" step="0.01"')}${field("date","Date du mouvement","date",accountingWeekKey(new Date()))}${field("reason","Motif")}</div>`,"Enregistrer à catégoriser")}</section>`;
+}
+function accountingCategorize(id){
+const row=(db.accountingTransactions||[]).find(r=>r.id===id);if(!row)return;
+const dialog=document.getElementById("modal");const categories=row.direction==="in"?IRS_IN:[...IRS_OUT_DED,...IRS_OUT_NON.filter(x=>!IRS_OUT_DED.includes(x))];
+dialog.innerHTML=`<h2>Catégoriser la transaction</h2><p>${E(row.reason||"Sans motif")} — ${accountingMoney(row.amount_cents/100)}</p><form id="irs-category-form"><input type="hidden" name="id" value="${E(row.id)}">${select("category","Rubrique IRS",categories,row.category||categories[0])}${row.direction==="out"?select("deductible","Traitement fiscal",["Déductible","Non déductible"],row.deductible===false?"Non déductible":"Déductible"):""}<div class="flex"><button class="btn" type="submit">Enregistrer</button><button class="btn secondary" type="button" data-action="close-modal">Annuler</button></div></form>`;
+dialog.showModal();
+}
 function analytics(){const done=db.orders.filter(o=>o.status==="Livrée");return header("FINANCES","Statistiques financières","Détail par entreprise.")+`<div class="grid g3"><div class="panel stat"><span>CA livré</span><span class="num">${money(done.reduce((a,o)=>a+amount(o),0))}</span></div><div class="panel stat"><span>Livraisons</span><span class="num">${done.length}</span></div><div class="panel stat"><span>Commandes</span><span class="num">${db.orders.length}</span></div></div><div class="panel" style="margin-top:20px"><h3>Performances commerciales</h3>${db.users.filter(x=>x.role==="Commercial").map(x=>{const assigned=db.orders.filter(o=>o.commercialId===x.id);return `<details class="listitem"><summary>${avatar(x)} <strong>${E(x.name)}</strong> · ${assigned.length} prises en charge · ${assigned.filter(o=>o.status==="Livrée").length} livrées · ${assigned.filter(o=>o.status==="Annulée").length} annulées</summary>${orderRows(assigned)}</details>`}).join("")}</div><div class="panel" style="margin-top:20px"><div class="between"><h3>Entreprises</h3>${btn("Exporter pour Google Sheets","export-orders","","secondary tiny")}</div>${db.companies.map(c=>{const os=db.orders.filter(o=>o.companyId===c.id);return `<details class="listitem"><summary><strong>${E(c.name)}</strong> · ${os.length} commandes · ${money(os.filter(o=>o.status==="Livrée").reduce((a,o)=>a+amount(o),0))}</summary>${orderRows(os)}</details>`}).join("")}</div>`}
 
 function commercialHistory(){const u=current();if(u.role!=="Commercial")return empty("Accès réservé");const rows=db.orders.filter(o=>o.commercialId===u.id);return header("LIVRAISONS","Mon activité commerciale","Suivi des commandes prises en charge.")+`<div class="grid g3"><div class="panel stat"><span>Prises en charge</span><span class="num">${rows.length}</span></div><div class="panel stat"><span>Livrées</span><span class="num">${rows.filter(o=>o.status==="Livrée").length}</span></div><div class="panel stat"><span>Annulées</span><span class="num">${rows.filter(o=>o.status==="Annulée").length}</span></div></div>`+orderRows(rows)}
@@ -190,6 +228,7 @@ case"missions":return missions();
 case"notifications":return notifications();
 case"activity":return activity();
 case"analytics":return analytics();
+case"accounting":return accounting();
 case"hrnotes":return hrnotes();
 case"commercial-history":return commercialHistory();
 case"employee-card":return employeeCard();
@@ -221,6 +260,10 @@ function getUsernameFree(name){return name&&name.trim()&&!db.users.some(u=>u.use
 function loginSession(u){sessionId=u.id;sessionStorage.setItem(SESSION,u.id);page=u.kind==="company"?"catalog":"dashboard";cart={};render()}
 document.addEventListener("submit",e=>{
 const f=e.target;if(!f.id)return;e.preventDefault();const d=data(f),u=current();
+if(f.id==="irs-manual-form"&&accountingAllowed()){
+const cents=Math.round(Number(d.amount)*100);if(!Number.isSafeInteger(cents)||cents<=0)return toast("Montant invalide.");db.accountingTransactions||=[];db.accountingTransactions.unshift({id:uid("IRS"),week:weekOf(new Date(d.date+"T12:00:00").getTime()),date:d.date,direction:d.direction==="Entrée"?"in":"out",amount_cents:cents,reason:d.reason,status:"pending",category:null});save();return render();}
+if(f.id==="irs-category-form"&&accountingAllowed()){
+const r=(db.accountingTransactions||[]).find(x=>x.id===d.id);if(!r)return;r.category=d.category;r.deductible=r.direction==="out"?d.deductible==="Déductible":null;r.status="classified";save();document.getElementById("modal").close();return render();}
 if(f.id==="login-form"){
 const found=db.users.find(u=>u.kind===loginKind&&u.active&&u.username.toLowerCase()===String(d.username||"").trim().toLowerCase()&&u.password===d.password);
 if(!found)return toast("Identifiants ou espace de connexion incorrects.");return loginSession(found);
@@ -283,6 +326,11 @@ if(a==="public-apply"){publicApply=true;return render()}
 if(a==="back-login"){publicApply=false;return render()}
 if(a==="logout"){sessionId="";sessionStorage.removeItem(SESSION);cart={};return render()}
 if(!u)return;
+if(a==="irs-prev"&&accountingAllowed()){accountingWeekOffset--;return render()}
+if(a==="irs-next"&&accountingAllowed()){accountingWeekOffset++;return render()}
+if(a==="irs-filter"&&accountingAllowed()){accountingFilter=id;return render()}
+if(a==="irs-classify"&&accountingAllowed())return accountingCategorize(id);
+if(a==="irs-export"&&accountingAllowed()){const week=accountingWeekKey(accountingWeek());return csv("gbfoundry-irs-"+week,[["Date","Sens","Motif","Catégorie","Déductible","Montant $","Statut"],...(db.accountingTransactions||[]).filter(r=>r.week===week).map(r=>[r.date,r.direction,r.reason,r.category||"",r.deductible===true?"Oui":r.deductible===false?"Non":"",r.amount_cents/100,r.status])])}
 if(a==="nav"){page=id;return render()}
 if(a==="compact"){compact=!compact;return render()}
 if(a==="priority-toggle"&&allowed("orders")){const o=db.orders.find(o=>o.id===id);if(!o||["Livrée","Annulée"].includes(o.status))return;o.priority=o.priority==="Urgente"?"Normale":"Urgente";log("order_priority",o.id+" : "+o.priority);save();return render()}
