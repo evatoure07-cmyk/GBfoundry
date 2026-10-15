@@ -37,7 +37,7 @@ events:[],missions:[],notifications:[],notes:[]});
 let db;
 try {db=JSON.parse(localStorage.getItem(STORE)||"null");if(!db||db.version!==2)db=starter()}catch{db=starter()}
 db.missions ||= [];db.notifications ||= [];db.notes ||= [];db.orders.forEach(o=>{o.priority ||= "Normale";});db.users.forEach(u=>{u.career ||= [];u.photo ||= "";});
-let compact=false;
+let compact=false, scheduleOffset=0;
 let loginKind="admin", page="dashboard", cart={}, modalCredentials=null, publicApply=false;
 let sessionId=sessionStorage.getItem(SESSION)||"";
 const root=document.getElementById("app");
@@ -102,6 +102,15 @@ function shell(){
 const u=current(), nav=navigation();if(!nav.some(n=>n[0]===page))page=nav[0][0];
 root.innerHTML=`<div class="shell ${compact?"compact":""}"><aside class="sidebar"><div class="brand"><img src="logo.png" alt="Logo GB Foundry"><div><strong>GB FOUNDRY</strong><small>PORTAIL PROFESSIONNEL</small></div></div><div class="sectionlabel">${u.kind==="admin"?"DIRECTION":u.kind==="company"?"ESPACE PARTENAIRE":"ESPACE INTERNE"}</div><nav class="side-nav">${renderGroupedNav(nav,u)}</nav><div class="sidefoot"><div><strong>${E(u.name)}</strong><br>${E(u.role)}</div><div class="footactions">${btn("Mon profil","nav","profile","secondary tiny")}${btn("Déconnexion","logout","","secondary tiny")}</div></div></aside><main class="content"><div class="top"><span class="eyebrow">GB FOUNDRY / ${E(page.toUpperCase())}</span><div class="topright">${label(u.role,"orange")}</div></div><div id="view">${view()}</div><div style="margin-top:28px" class="small">© GB Foundry · Prévisualisation locale · Les données ne sont pas partagées entre appareils · Discord à connecter</div></main></div>`;
 }
+function quotaWarnings(){
+const week=weekOf(Date.now());
+return db.users.filter(u=>u.kind==="employee"&&u.role.startsWith("Récolteur")&&u.active).filter(u=>{
+const quota=Number(gradFor(u.role).quota)||0;
+const approved=employeeDeclarations(u).filter(d=>d.week===week&&d.status==="Validée").reduce((a,d)=>a+Number(d.quantity),0);
+const today=new Date();const day=today.getDay(),hours=today.getHours();
+return quota>0&&(day>3||day===3&&hours>=23)&&approved<quota/2;
+});
+}
 function dashboard(){
 const u=current();
 if(u.kind==="admin"){
@@ -157,7 +166,13 @@ const u=current();return `${header("IDENTITÉ","Mon profil","Vos informations de
 }
 
 function inventory(){const u=current(),ds=db.declarations.filter(d=>d.userId===u.id);return header("RÉCOLTES","Inventaire personnel","Déclarations en attente et validées.")+table(["Matériau","Validé","En attente"],db.materials.map(m=>{const rows=ds.filter(d=>d.material===m.name),sum=status=>rows.filter(d=>d.status===status).reduce((a,d)=>a+Number(d.quantity),0);return `<tr><td>${E(m.name)}</td><td>${num(sum("Validée"))}</td><td>${num(sum("En attente"))}</td></tr>`}))}
-function schedule(){return header("LOGISTIQUE","Planning des livraisons","Commandes urgentes en premier, puis par date et heure.")+orderRows(db.orders.filter(o=>o.status!=="Annulée").slice().sort((a,b)=>(b.priority==="Urgente")-(a.priority==="Urgente")||(a.deliveryDate||"").localeCompare(b.deliveryDate||"")||(a.deliveryTime||"").localeCompare(b.deliveryTime||"")))}
+function schedule(){
+const monday=new Date();monday.setHours(12,0,0,0);monday.setDate(monday.getDate()-(monday.getDay()+6)%7+scheduleOffset*7);
+const days=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return d});
+const fmt=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+return header("LOGISTIQUE","Planning des livraisons","Naviguez entre les semaines et consultez les livraisons prévues.")+
+`<div class="panel"><div class="between"><button class="btn secondary" data-action="week-prev">← Précédente</button><strong>${E(days[0].toLocaleDateString("fr-FR",{month:"long",year:"numeric"}))}</strong><button class="btn secondary" data-action="week-next">Suivante →</button></div><div class="week-grid">${days.map(d=>`<div class="week-day"><strong>${E(d.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}))}</strong>${orderRows(db.orders.filter(o=>o.deliveryDate===fmt(d)&&o.status!=="Annulée"))}</div>`).join("")}</div></div>`;
+}
 function missions(){return header("OBJECTIFS","Missions exceptionnelles","Missions fixées par la direction.")+(director()?`<div class="panel">${frm("mission-form",field("title","Mission")+select("material","Ressource",db.materials.map(m=>m.name))+field("quantity","Quantité","number")+field("deadline","Échéance","date")+field("reward","Prime éventuelle","number","0",false),"Créer une mission")}</div>`:"")+`<div class="grid g3">${db.missions.map(m=>`<div class="panel"><h3>${E(m.title)}</h3><p>${E(m.material)} : ${num(m.quantity)}</p><p>Échéance : ${E(m.deadline)}</p><p>Prime : ${money(m.reward)}</p>${director()?btn("Clôturer","mission-close",m.id,"secondary tiny"):""}</div>`).join("")}</div>`}
 function notifications(){const u=current(),items=db.notifications.filter(n=>n.target==="all"||n.target===u.id||n.target==="orders"&&canOrders()||n.target==="quotas"&&allowed("quotas"));return header("ALERTES","Notifications","Informations récentes.")+`<div class="list">${items.slice(0,60).map(n=>`<div class="listitem between"><div>${E(n.message)}<p>${new Date(n.at).toLocaleString("fr-FR")}</p></div>${(n.readBy||[]).includes(u.id)?label("Lu","green"):btn("Marquer lu","notice-read",n.id,"secondary tiny")}</div>`).join("")}</div>`}
 function activity(){return director()?header("AUDIT","Journal d'activité","Modifications enregistrées.")+`<div class="list">${db.events.slice(0,150).map(e=>`<div class="listitem"><strong>${E(e.type)}</strong><p>${E(e.info)} · ${E(e.by)} · ${E(e.date)}</p></div>`).join("")}</div>`:empty("Accès réservé")}
@@ -260,6 +275,8 @@ document.addEventListener("change",e=>{if(e.target.id==="profile-photo"){const f
 document.addEventListener("input",e=>{if(e.target.id==="staff-search"){const q=e.target.value.toLowerCase();document.querySelectorAll(".staff-entry").forEach(el=>el.hidden=!el.dataset.search.includes(q))}});
 document.addEventListener("click",e=>{
 const b=e.target.closest("[data-action]");if(!b)return;const a=b.dataset.action,id=b.dataset.id,u=current();
+if(a==="week-prev"){scheduleOffset--;return render()}
+if(a==="week-next"){scheduleOffset++;return render()}
 if(a==="choose-login"){loginKind=id;return render()}
 if(a==="demo"){const x=db.users.find(u=>u.id===id);if(x){loginKind=x.kind;render();const a=root.querySelector('[name="username"]'),p=root.querySelector('[name="password"]');if(a)a.value=x.username;if(p)p.value=x.password;}return}
 if(a==="public-apply"){publicApply=true;return render()}
