@@ -54,3 +54,20 @@ dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px #0
 .gb-id-main p{margin:0 0 7px;color:#ffb17c}
 .gb-id-main small{color:#ccc}
 .gb-id-foot{font-size:9px;color:#aaa}
+
+/* Navigation GB Foundry : sidebar indépendante et rubriques repliables */
+.sidebar{position:sticky;top:0;height:100dvh;overflow:hidden;padding-bottom:14px}
+.side-nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#56595e transparent}
+.navgroup{border-bottom:1px solid #ffffff12;margin:4px 0}
+.navgroup summary{cursor:pointer;list-style:none;padding:13px 14px;color:#e4e5e7;font-size:12px;font-weight:800;border-radius:10px}
+.navgroup summary::-webkit-details-marker{display:none}
+.navgroup summary::after{content:"⌄";float:right;color:#f66b16}
+.navgroup[open] summary::after{content:"⌃"}
+.navgroup summary:hover{background:#ffffff12}
+.navchildren{padding:0 0 6px 10px;border-left:2px solid #f66b1655;margin-left:13px}
+.navchildren .navbtn{font-size:12px;padding:10px 12px;margin:1px 0}
+.sidefoot{flex-shrink:0;margin-top:12px;padding:11px}
+.footactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.footactions .btn{flex:1;white-space:nowrap}
+.pagelead{align-items:flex-start}
+@media(max-width:800px){.sidebar{height:auto;max-height:100dvh;position:relative}.side-nav{max-height:45vh}}
